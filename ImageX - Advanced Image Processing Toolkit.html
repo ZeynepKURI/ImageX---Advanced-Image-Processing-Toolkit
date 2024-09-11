@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Processing App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #bad5ef;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            text-align: center;
+            background-color: #fff;
+            border-radius: 20px;
+            box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 800px;
+            width: 80%;
+        }
+        .image-container {
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .image-container img,
+        .image-container canvas {
+            width: 300px;
+            height: 300px;
+            border-radius: 20px;
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+        .image-container img:hover,
+        .image-container canvas:hover {
+            transform: scale(1.05);
+            box-shadow: 0px 0px 30px rgba(0, 0, 0, 0.5);
+        }
+        .buttons {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .buttons button {
+            padding: 15px 30px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.2);
+        }
+        .buttons button:hover {
+            background-color: #020e1b;
+            box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.3);
+        }
+        .buttons input[type="file"] {
+            display: none;
+        }
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            transition: background-color 0.3s ease;
+        }
+        .dropdown-content a:hover {
+            background-color: #f1f1f1;
+        }
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        h1 {
+            color: #007bff;
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+        .parameter-input {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Image Processing App</h1>
+        <div class="image-container">
+            <img id="original-image" src="" alt="Original Image">
+            <canvas id="processed-image" class="processed-image"></canvas>
+        </div>
+        <div class="buttons">
+            <input type="file" id="file-input">
+            <button id="load-image-btn">Load Image</button>
+            <button id="gray-btn" class="effect-btn">Grayscale</button>
+            <button id="binary-btn" class="effect-btn">Binary</button>
+            <button id="emboss-btn" class="effect-btn">Embossing</button>
+            <button id="gauss-blur-btn" class="effect-btn">Gauss Blur</button>
+        
+          
+
+ <button id="Rgb-btn" class="effect-btn" onclick="location.href='rgb.html'">RGB Conversions</button>
+ <button id="keskinleştirme-btn" class="effect-btn" onclick="location.href='keskinleştirme .html'">Sharpening</button>
+ <button id="histogram-btn" class="effect-btn" onclick="location.href='histogram.html'">Histogram Synchronization</button>
+ <button id="canny-btn" class="effect-btn" onclick="location.href='canny.html'">Canny Edge Detection</button>
+ <button id="sobel-btn" class="effect-btn" onclick="location.href='page2.html'">Sobel Edge Detection</button>
+ <button id="rgb-btn" class="effect-btn" onclick="location.href='page6.html'">Region Growing </button>
+ 
+            <div class="dropdown">
+                <button class="dropbtn">Morphological Operations</button>
+                <div class="dropdown-content">
+                    <a id="dilate-btn" class="effect-btn">Dilation</a>
+                    <a id="erode-btn" class="effect-btn">Erosion</a>
+                    <a id="opening-btn" class="effect-btn">Opening</a>
+                    <a id="closing-btn" class="effect-btn">Closing</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gauss Blur Parameters -->
+        <div id="gauss-blur-params" class="parameter-input" style="display: none;">
+            <div class="parameter-input">
+                <label for="kernel-size">Kernel Size:</label>
+                <input type="number" id="kernel-size" value="3" min="3" max="15">
+            </div>
+            <div class="parameter-input">
+                <label for="sigma">Sigma:</label>
+                <input type="number" id="sigma" value="1" min="0.1" max="5" step="0.1">
+            </div>
+            <button id="apply-gauss-blur-btn">Apply Gauss Blur</button>
+        </div>
+
+        <!-- Sobel Parameters -->
+        <div id="sobel-params" class="parameter-input" style="display: none;">
+            <div class="parameter-input">
+                <label for="threshold">Threshold:</label>
+                <input type="number" id="threshold" value="50" min="0" max="255">
+            </div>
+            <button id="apply-sobel-btn">Apply Sobel</button>
+        </div>
+
+        <!-- Histogram Parameters -->
+        <div id="histogram-params" class="parameter-input" style="display: none;">
+            <button id="apply-histogram-btn">Apply Histogram</button>
+        </div>
+
+        <!-- Canny Parameters -->
+        <div id="canny-params" class="parameter-input" style="display: none;">
+            <div class="parameter-input">
+                <label for="low-threshold
+                ">Low Threshold:</label>
+                <input type="number" id="low-threshold" value="50" min="0" max="255">
+                </div>
+                <div class="parameter-input">
+                <label for="high-threshold">High Threshold:</label>
+                <input type="number" id="high-threshold" value="150" min="0" max="255">
+                </div>
+                <button id="apply-canny-btn">Apply Canny</button>
+                </div>
+                </div>
+
+                <script>
+                    document.addEventListener("DOMContentLoaded", function() {
+                        const originalImage = document.getElementById("original-image");
+                        const processedImage = document.getElementById("processed-image");
+                        const fileInput = document.getElementById("file-input");
+                        const loadImageBtn = document.getElementById("load-image-btn");
+                        const effectBtns = document.querySelectorAll(".effect-btn");
+                        const gaussBlurParams = document.getElementById("gauss-blur-params");
+                        const sobelParams = document.getElementById("sobel-params");
+                        const histogramParams = document.getElementById("histogram-params");
+                        const cannyParams = document.getElementById("canny-params");
+                
+                        let imageLoaded = false;
+                
+                        // Load image
+                        loadImageBtn.addEventListener("click", () => fileInput.click());
+                        fileInput.addEventListener("change", function() {
+                            const file = this.files[0];
+                            const reader = new FileReader();
+                            reader.onload = e => {
+                                originalImage.src = e.target.result;
+                                imageLoaded = true;
+                            }
+                            reader.readAsDataURL(file);
+                        });
+                
+                        // Button click events
+                        effectBtns.forEach(btn => {
+                            btn.addEventListener("click", () => {
+                                const effect = btn.textContent;
+                                processImage(effect);
+                            });
+                        });
+                
+                        // Function to process image based on selected effect
+                        function processImage(effect) {
+                            if (imageLoaded) {
+                                switch (effect) {
+                                    case "Grayscale":
+                                        applyGrayscale();
+                                        break;
+                                    case "Binary":
+                                        applyBinary();
+                                        break;
+                                    case "Embossing":
+                                        applyEmbossing();
+                                        break;
+                                    case "Gauss Blur":
+                                        gaussBlurParams.style.display = "block";
+                                       
+                                  
+                                      
+                                        break;
+                                    case "Sobel":
+                                        sobelParams.style.display = "block";
+                                     
+                                     
+                                    
+                                        break;
+                                    case "Histogram":
+                                      
+                                        break;
+                                    case "Canny":
+                                     
+                                        break;
+                                    case "Dilation":
+                                        applyDilation();
+                                        break;
+                                    case "Erosion":
+                                        applyErosion();
+                                        break;
+                                    case "Opening":
+                                        applyOpening();
+                                        break;
+                                    case "Closing":
+                                        applyClosing();
+                                        break;
+                                    default:
+                                        console.log("Invalid effect");
+                                }
+                            } else {
+                                alert("Please upload an image first.");
+                            }
+                        }
+                        
+                     
+
+
+
+
+
+
+
+
+
+
+
+            // Grayscale function
+            function applyGrayscale() {
+                const ctx = processedImage.getContext('2d');
+                ctx.drawImage(originalImage, 0, 0, processedImage.width, processedImage.height);
+                const imageData = ctx.getImageData(0, 0, processedImage.width, processedImage.height);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    data[i] = avg;
+                    data[i + 1] = avg;
+                    data[i + 2] = avg;
+                }
+                ctx.putImageData(imageData, 0, 0);
+            }
+
+            // Binary function
+            function applyBinary() {
+                const ctx = processedImage.getContext('2d');
+                ctx.drawImage(originalImage, 0, 0, processedImage.width, processedImage.height);
+                const imageData = ctx.getImageData(0, 0, processedImage.width, processedImage.height);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    const binary = avg > 127 ? 255 : 0;
+                    data[i] = binary;
+                    data[i + 1] = binary;
+                    data[i + 2] = binary;
+                }
+                ctx.putImageData(imageData, 0, 0);
+            }
+
+            // Embossing function
+            function applyEmbossing() {
+                const ctx = processedImage.getContext('2d');
+                ctx.drawImage(originalImage, 0, 0, processedImage.width, processedImage.height);
+                const imageData = ctx.getImageData(0, 0, processedImage.width, processedImage.height);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    data[i] = data[i + 1] = data[i + 2] = avg;
+                }
+                const kernel = [-2, -1, 0, -1, 1, 1, 0, 1, 2];
+                applyConvolution(ctx, imageData, kernel);
+            }
+
+            // Apply Sobel function with parameters
+            document.getElementById("apply-sobel-btn").addEventListener("click", () => {
+                const threshold = parseInt(document.getElementById("threshold").value);
+                applySobel(threshold);
+            });
+
+     
+
+            // Function to apply morphological operations
+            function applyMorphologicalOperation(kernel) {
+                const ctx = processedImage.getContext('2d');
+                ctx.drawImage(originalImage, 0,
+                0, processedImage.width, processedImage.height);
+                const imageData = ctx.getImageData(0, 0, processedImage.width, processedImage.height);
+                const data = imageData.data;
+                const width = imageData.width;
+                const height = imageData.height;
+                const output = new Uint8ClampedArray(data.length);
+                const kernelSize = Math.sqrt(kernel.length);
+                const halfKernelSize = Math.floor(kernelSize / 2);
+
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const pixelIndex = (y * width + x) * 4;
+                        let min = 255;
+                        for (let ky = -halfKernelSize; ky <= halfKernelSize; ky++) {
+                            for (let kx = -halfKernelSize; kx <= halfKernelSize; kx++) {
+                                const ix = x + kx;
+                                const iy = y + ky;
+                                if (ix >= 0 && ix < width && iy >= 0 && iy < height) {
+                                    const i = (iy * width + ix) * 4;
+                                    const intensity = data[i];
+                                    const maskValue = kernel[(ky + halfKernelSize) * kernelSize + (kx + halfKernelSize)];
+                                    if (maskValue === 1) {
+                                        if (intensity < min) {
+                                            min = intensity;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        output[pixelIndex] = output[pixelIndex + 1] = output[pixelIndex + 2] = min;
+                        output[pixelIndex + 3] = 255;
+                    }
+                }
+                ctx.putImageData(new ImageData(output, width, height), 0, 0);
+            }
+
+
+
+
+
+
+
+
+
+
+            // Function to apply Dilation
+            function applyDilation() {
+                const kernel = [0, 1, 0, 1, 1, 1, 0, 1, 0]; // 3x3 square structuring element
+                applyMorphologicalOperation(kernel);
+            }
+
+            // Function to apply Erosion
+            function applyErosion() {
+                const kernel = [0, 1, 0, 1, 1, 1, 0, 1, 0]; // 3x3 square structuring element
+                for (let i = 0; i < kernel.length; i++) {
+                    if (kernel[i] === 1) {
+                        kernel[i] = 0;
+                    } else {
+                        kernel[i] = 1;
+                    }
+                }
+                applyMorphologicalOperation(kernel);
+            }
+
+            // Function to apply Opening
+            function applyOpening() {
+                applyErosion();
+                applyDilation();
+            }
+
+            // Function to apply Closing
+            function applyClosing() {
+                applyDilation();
+                applyErosion();
+            }
+
+
+
+   // Gauss Blur işlemini uygula
+   function applyGaussBlur() {
+    const ctx = processedImage.getContext('2d');
+    ctx.drawImage(originalImage, 0, 0, processedImage.width, processedImage.height);
+    const imageData = ctx.getImageData(0, 0, processedImage.width, processedImage.height);
+    const data = imageData.data;
+
+    // Gauss Blur parametreleri
+    const kernelSize = parseInt(document.getElementById('kernel-size').value);
+    const sigma = parseFloat(document.getElementById('sigma').value);
+
+    // Gauss Kernel oluştur
+    const kernel = createGaussianKernel(kernelSize, sigma);
+
+    // Gauss Blur uygula
+    applyCustomConvolution(data, processedImage.width, processedImage.height, kernel, kernelSize);
+
+    // Canvas'a işlenmiş veriyi uygula
+    ctx.putImageData(imageData, 0, 0);
+}
+
+// Gauss Kernel oluşturma
+function createGaussianKernel(size, sigma) {
+    const kernel = [];
+    const center = Math.floor(size / 2);
+    let sum = 0;
+
+    for (let i = 0; i < size; i++) {
+        kernel[i] = [];
+        for (let j = 0; j < size; j++) {
+            const x = i - center;
+            const y = j - center;
+            kernel[i][j] = Math.exp(-(x * x + y * y) / (2 * sigma * sigma));
+            sum += kernel[i][j];
+        }
+    }
+
+    // Normalize the kernel
+    for (let i = 0; i < size; i++) {
+        for (let j = 0; j < size; j++) {
+            kernel[i][j] /= sum;
+        }
+    }
+
+    return kernel;
+}
+
+// Convolution işlemi
+function applyCustomConvolution(data, width, height, kernel, kernelSize) {
+    const newData = new Uint8ClampedArray(data.length);
+    const halfKernelSize = Math.floor(kernelSize / 2);
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            let r = 0, g = 0, b = 0;
+            for (let ky = 0; ky < kernelSize; ky++) {
+                for (let kx = 0; kx < kernelSize; kx++) {
+                    const pixelIndex = ((y + ky - halfKernelSize) * width + (x + kx - halfKernelSize)) * 4;
+                    const weight = kernel[ky][kx];
+                    r += data[pixelIndex] * weight;
+                    g += data[pixelIndex + 1] * weight;
+                    b += data[pixelIndex + 2] * weight;
+                }
+            }
+            const index = (y * width + x) * 4;
+            newData[index] = r;
+            newData[index + 1] = g;
+            newData[index + 2] = b;
+            newData[index + 3] = data[index + 3];
+        }
+    }
+
+    for (let i = 0; i < data.length; i++) {
+        data[i] = newData[i];
+    }
+}
+
+// "Apply Gauss Blur" düğmesine tıklandığında Gauss Blur işlemini uygula
+document.getElementById('apply-gauss-blur-btn').addEventListener('click', function() {
+    applyGaussBlur();
+});
+
+
+
+ });
+    </script>
+</body>
+</html>

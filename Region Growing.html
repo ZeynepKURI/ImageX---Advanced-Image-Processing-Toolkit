@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Region Growing Segmentation</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .button-container {
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        label {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        label:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Region Growing Segmentation</h1>
+        <div class="button-container">
+            <label for="fileInput">Dosya Seç</label>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+        <canvas id="originalCanvas"></canvas>
+        <canvas id="resultCanvas"></canvas>
+        <div class="button-container">
+            <label for="colorThreshold">Renk Eşik Değeri:</label>
+            <input type="number" id="colorThreshold" value="50" min="0" max="255">
+        </div>
+        <div class="button-container">
+            <label for="filterSize">Filtre Boyutu:</label>
+            <input type="number" id="filterSize" value="3" min="3" max="21" step="2">
+        </div>
+        <div class="button-container">
+            <button id="segmentButton">Segmentasyon Uygula</button>
+        </div>
+    </div>
+
+    <script>
+        var originalCanvas = document.getElementById('originalCanvas');
+        var originalCtx = originalCanvas.getContext('2d');
+        var resultCanvas = document.getElementById('resultCanvas');
+        var resultCtx = resultCanvas.getContext('2d');
+        var fileInput = document.getElementById('fileInput');
+        var segmentButton = document.getElementById('segmentButton');
+        var colorThresholdInput = document.getElementById('colorThreshold');
+        var filterSizeInput = document.getElementById('filterSize');
+
+        fileInput.addEventListener('change', function(event) {
+            var file = event.target.files[0];
+            var reader = new FileReader();
+
+            reader.onload = function(event) {
+                var img = new Image();
+                img.onload = function() {
+                    originalCanvas.width = resultCanvas.width = img.width;
+                    originalCanvas.height = resultCanvas.height = img.height;
+                    originalCtx.drawImage(img, 0, 0);
+                };
+                img.src = event.target.result;
+            };
+
+            reader.readAsDataURL(file);
+        });
+
+        segmentButton.addEventListener('click', function() {
+            var colorThreshold = parseInt(colorThresholdInput.value);
+            var filterSize = parseInt(filterSizeInput.value);
+            var originalImageData = originalCtx.getImageData(0, 0, originalCanvas.width, originalCanvas.height);
+            var resultImageData = originalCtx.createImageData(originalCanvas.width, originalCanvas.height);
+
+            // Region Growing segmentasyonu uygula
+            regionGrowing(originalImageData, resultImageData, colorThreshold, filterSize);
+
+            // Sonuçları görselleştir
+            resultCtx.putImageData(resultImageData, 0, 0);
+        });
+
+        function getColorAt(idx, pixels) {
+            return {
+                r: pixels[idx],
+                g: pixels[idx + 1],
+                b: pixels[idx + 2],
+                a: pixels[idx + 3]
+            };
+        }
+
+        function setColorAt(idx, color, pixels) {
+            pixels[idx] = color.r;
+            pixels[idx + 1] = color.g;
+            pixels[idx + 2] = color.b;
+            pixels[idx + 3] = color.a;
+        }
+
+        function getColorDistance(color1, color2) {
+            var dr = color1.r - color2.r;
+            var dg = color1.g - color2.g;
+            var db = color1.b - color2.b;
+            return Math.sqrt(dr * dr + dg * dg + db * db);
+        }
+
+        function regionGrowing(originalImageData, resultImageData, colorThreshold, filterSize) {
+            var originalPixels = originalImageData.data;
+            var resultPixels = resultImageData.data;
+            var visited = new Array(originalPixels.length / 4).fill(false); // Her piksel ziyaret edilmedi olarak işaretlenir
+
+            // Başlangıç pikselini seç
+            var startX = Math.floor(originalImageData.width / 2);
+            var startY = Math.floor(originalImageData.height / 2);
+            var startIdx = (startY * originalImageData.width + startX) * 4;
+
+            // Region Growing algoritması
+            var seedColor = getColorAt(startIdx, originalPixels); // Başlangıç pikselinin rengi
+
+            var queue = [];
+            queue.push({ x: startX, y: startY });
+
+            while (queue.length > 0) {
+                var { x, y } = queue.shift();
+                var idx = (y * originalImageData.width + x) * 4;
+
+                if (!visited[idx / 4] && getColorDistance(seedColor, getColorAt(idx, originalPixels)) < colorThreshold) {
+                    visited[idx / 4] = true;
+                    setColorAt(idx, { r: 255, g: 0, b: 0, a: 255 }, resultPixels); // Segmentasyon renklerini kırmızı olarak ayarla
+                    for (var dy = -Math.floor(filterSize / 2); dy <= Math.floor(filterSize / 2); dy++) {
+                        for (var dx = -Math.floor(filterSize / 2); dx <= Math.floor(filterSize / 2); dx++) {
+                            if (x + dx >= 0 && x + dx < originalImageData.width && y + dy >= 0 && y + dy < originalImageData.height) {
+                                queue.push({ x: x + dx, y: y + dy });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html> 

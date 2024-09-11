@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Sharpening</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: block;
+            margin: 0 auto;
+        }
+        .button-container {
+    margin-bottom: 20px;
+    text-align: center; /* Butonların ortalanması için */
+}
+
+.button-container label, .button-container button {
+    display: inline-block; /* Butonların yan yana gelmesi için */
+    padding: 12px 24px;
+    font-size: 18px;
+    border: none;
+    border-radius: 8px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.button-container label {
+    margin-bottom: 10px; /* Buton etiketinin altına biraz boşluk bırakmak için */
+}
+
+.button-container label:hover {
+    background-color: #0056b3;
+}
+
+        input[type="range"] {
+            width: 80%;
+            margin-top: 10px;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 5px;
+            background: #d3d3d3;
+            outline: none;
+            border-radius: 10px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #007bff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #007bff;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        label {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        label:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Image Sharpening</h1>
+        <div class="button-container">
+            <label for="fileInput">Select Image</label>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+        <canvas id="originalCanvas"></canvas>
+        <canvas id="resultCanvas"></canvas>
+        <div class="button-container">
+            <input type="range" id="sharpenAmount" min="0" max="100" value="50">
+        </div>
+    </div>
+
+    <script>
+        var originalCanvas = document.getElementById('originalCanvas');
+        var originalCtx = originalCanvas.getContext('2d');
+        var resultCanvas = document.getElementById('resultCanvas');
+        var resultCtx = resultCanvas.getContext('2d');
+        var fileInput = document.getElementById('fileInput');
+        var sharpenAmountInput = document.getElementById('sharpenAmount');
+
+        fileInput.addEventListener('change', function(event) {
+            var file = event.target.files[0];
+            var reader = new FileReader();
+
+            reader.onload = function(event) {
+                var img = new Image();
+                img.onload = function() {
+                    originalCanvas.width = resultCanvas.width = img.width;
+                    originalCanvas.height = resultCanvas.height = img.height;
+                    originalCtx.drawImage(img, 0, 0);
+                };
+                img.src = event.target.result;
+            };
+
+            reader.readAsDataURL(file);
+        });
+
+        sharpenAmountInput.addEventListener('input', function() {
+            sharpenImage();
+        });
+
+        function sharpenImage() {
+            var amount = parseFloat(sharpenAmountInput.value);
+            var kernel = [
+                [0, -1, 0],
+                [-1, 4, -1],
+                [0, -1, 0]
+            ]; // Keskinleştirme için kullanılacak çekirdek (kernel)
+
+            var originalImageData = originalCtx.getImageData(0, 0, originalCanvas.width, originalCanvas.height);
+            var resultImageData = originalCtx.createImageData(originalCanvas.width, originalCanvas.height);
+
+            // Keskinleştirme işlemi
+            sharpen(originalImageData, resultImageData, amount, kernel);
+
+            // Sonuçları görselleştir
+            resultCtx.putImageData(resultImageData, 0, 0);
+        }
+
+        function sharpen(originalImageData, resultImageData, amount, kernel) {
+            var originalPixels = originalImageData.data;
+            var resultPixels = resultImageData.data;
+            var width = originalImageData.width;
+            var height = originalImageData.height;
+            var kernelSize = kernel.length;
+            var halfKernelSize = Math.floor(kernelSize / 2);
+
+            for (var y = 0; y < height; y++) {
+                for (var x = 0; x < width; x++) {
+                    var idx = (y * width + x) * 4;
+                    var r = 0, g = 0, b = 0;
+
+                    for (var ky = 0; ky < kernelSize; ky++) {
+                        for (var kx = 0; kx < kernelSize; kx++) {
+                            var pixelY = y + ky - halfKernelSize;
+                            var pixelX = x + kx - halfKernelSize;
+
+                            if (pixelY >= 0 && pixelY < height && pixelX >= 0 && pixelX < width) {
+                                var kernelValue = kernel[ky][kx];
+                                var kernelIdx = (pixelY * width + pixelX) * 4;
+
+                                r += originalPixels[kernelIdx] * kernelValue;
+                                g += originalPixels[kernelIdx + 1] * kernelValue;
+                                b += originalPixels[kernelIdx + 2] * kernelValue;
+                            }
+                        }
+                    }
+
+                    resultPixels[idx] = Math.min(255, Math.max(0, originalPixels[idx] + amount * r));
+                    resultPixels[idx + 1] = Math.min(255, Math.max(0, originalPixels[idx + 1] + amount * g));
+                    resultPixels[idx + 2] = Math.min(255,
+                    Math.max(0, originalPixels[idx + 2] + amount * b));
+                    resultPixels[idx + 3] = originalPixels[idx + 3]; // Alfa kanalını kopyala
+                }
+            }
+        }
+    </script>
+</body>
+</html>

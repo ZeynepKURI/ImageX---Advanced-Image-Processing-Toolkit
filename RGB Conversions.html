@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RGB Kanalları ve Orijinal Görüntü</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            background-color: #fff;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        input[type="file"] {
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        h3 {
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        #originalCanvas, .channel-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        #channels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .channel-container {
+            flex: 0 0 30%;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center;">RGB Kanalları ve Orijinal Görüntü</h1>
+        <input type="file" id="inputGroupFile02" accept="image/*">
+        <h3>Orijinal Görüntü</h3>
+        <canvas id="originalCanvas"></canvas>
+        <div id="channels">
+            <div class="channel-container">
+                <h3>Kırmızı Kanal</h3>
+                <img id="redChannel" style="display: none;">
+            </div>
+            <div class="channel-container">
+                <h3>Yeşil Kanal</h3>
+                <img id="greenChannel" style="display: none;">
+            </div>
+            <div class="channel-container">
+                <h3>Mavi Kanal</h3>
+                <img id="blueChannel" style="display: none;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Function to handle image upload
+        function handleImageUpload(event) {
+            var file = event.target.files[0];
+            var reader = new FileReader();
+
+            reader.onload = function(event) {
+                var img = new Image();
+                img.onload = function() {
+                    var canvas = document.getElementById('originalCanvas');
+                    var ctx = canvas.getContext('2d');
+
+                    // Determine canvas dimensions based on image aspect ratio
+                    var aspectRatio = img.width / img.height;
+                    var maxWidth = 600;
+                    var maxHeight = 400;
+                    var newWidth = maxWidth;
+                    var newHeight = newWidth / aspectRatio;
+
+                    if (newHeight > maxHeight) {
+                        newHeight = maxHeight;
+                        newWidth = newHeight * aspectRatio;
+                    }
+
+                    canvas.width = newWidth;
+                    canvas.height = newHeight;
+                    ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+                    // Get image data
+                    var imageData = ctx.getImageData(0, 0, newWidth, newHeight);
+                    var pixels = imageData.data;
+
+                    // Separate RGB channels
+                    var redChannelData = ctx.createImageData(canvas.width, canvas.height);
+                    var greenChannelData = ctx.createImageData(canvas.width, canvas.height);
+                    var blueChannelData = ctx.createImageData(canvas.width, canvas.height);
+
+                    for (var i = 0; i < pixels.length; i += 4) {
+                        redChannelData.data[i] = pixels[i];       // Red channel
+                        greenChannelData.data[i + 1] = pixels[i + 1]; // Green channel
+                        blueChannelData.data[i + 2] = pixels[i + 2];  // Blue channel
+                        redChannelData.data[i + 3] = greenChannelData.data[i + 3] = blueChannelData.data[i + 3] = pixels[i + 3]; // Alpha channel
+                    }
+
+                    // Display separated channels
+                    var redChannelCanvas = document.createElement('canvas');
+                    var redChannelCtx = redChannelCanvas.getContext('2d');
+                    redChannelCanvas.width = canvas.width;
+                    redChannelCanvas.height = canvas.height;
+                    redChannelCtx.putImageData(redChannelData, 0, 0);
+                    var redChannelImage = document.getElementById('redChannel');
+                    redChannelImage.src = redChannelCanvas.toDataURL();
+                    redChannelImage.style.display = 'block'; // Show red channel
+
+                    var greenChannelCanvas = document.createElement('canvas');
+                    var greenChannelCtx = greenChannelCanvas.getContext('2d');
+                    greenChannelCanvas.width = canvas.width;
+                    greenChannelCanvas.height = canvas.height;
+                    greenChannelCtx.putImageData(greenChannelData, 0, 0);
+                    var greenChannelImage = document.getElementById('greenChannel');
+                    greenChannelImage.src = greenChannelCanvas.toDataURL();
+                    greenChannelImage.style.display = 'block'; // Show green channel
+
+                    var blueChannelCanvas = document.createElement('canvas');
+                    var blueChannelCtx = blueChannelCanvas.getContext('2d');
+                    blueChannelCanvas.width = canvas.width;
+                    blueChannelCanvas.height = canvas.height;
+                    blueChannelCtx.putImageData(blueChannelData, 0, 0);
+                    var blueChannelImage = document.getElementById('blueChannel');
+                    blueChannelImage.src = blueChannelCanvas.toDataURL();
+                    blueChannelImage.style.display = 'block'; // Show blue channel
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Add event listener to the file input element
+        var fileInput = document.getElementById('inputGroupFile02');
+        fileInput.addEventListener('change', handleImageUpload);
+    </script>
+</body>
+</html>
